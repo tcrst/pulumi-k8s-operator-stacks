@@ -17,23 +17,10 @@ import (
 	rbacv1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/rbac/v1"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/yaml"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
-
-		// Get the Pulumi API token.
-		c := config.New(ctx, "")
-		pulumiAccessToken := c.Require("pulumiAccessToken")
-
-		// Create the API token as a Kubernetes Secret.
-		accessToken, err := corev1.NewSecret(ctx, "accesstoken", &corev1.SecretArgs{
-			StringData: pulumi.StringMap{"accessToken": pulumi.String(pulumiAccessToken)},
-		})
-		if err != nil {
-			return err
-		}
 
 		// Download file
 		filePath, cleanup, err := downloadFile("https://raw.githubusercontent.com/pulumi/pulumi-kubernetes-operator/v1.4.0/deploy/crds/pulumi.com_stacks.yaml")
