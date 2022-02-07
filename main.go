@@ -257,26 +257,35 @@ func main() {
 			return err
 		}
 
+		// Create the API token as a Kubernetes Secret.
+		passphrase, err := corev1.NewSecret(ctx, "pulumi-stack-passphrase", &corev1.SecretArgs{
+			StringData: pulumi.StringMap{"passphrase": pulumi.String("PASSPHRASE")},
+		})
+		if err != nil {
+			return err
+		}
+
 		// Deploy Guestbook stack in-cluster.
 		_, err = apiextensions.NewCustomResource(ctx, "guestbook-stack", &apiextensions.CustomResourceArgs{
 			ApiVersion: pulumi.String("pulumi.com/v1"),
 			Kind:       pulumi.String("Stack"),
 			OtherFields: kubernetes.UntypedArgs{
 				"spec": map[string]interface{}{
-					"backend:": "file://./stacks",
-					"refresh":  true,
-
-					// "envRefs": pulumi.Map{
-					// 	"PULUMI_ACCESS_TOKEN": pulumi.Map{
-					// 		"type": pulumi.String("Secret"),
-					// 		"secret": pulumi.Map{
-					// 			"name": accessToken.Metadata.Name(),
-					// 			"key":  pulumi.String("accessToken"),
-					// 		},
-					// 	},
-					// },
-					"stack":       "stacks/guestbook",
-					"projectRepo": "https://github.com/tcrst/pulumi-k8s-operator-stacks",
+					"envRefs": pulumi.Map{
+						"PULUMI_CONFIG_PASSPHRASE": pulumi.Map{
+							"type": pulumi.String("Secret"),
+							"secret": pulumi.Map{
+								"name": passphrase.Metadata.Name(),
+								"key":  pulumi.String("passphrase"),
+							},
+						},
+					},
+					"resyncFrequencySeconds": 61,
+					"backend":                "file:///home/pulumi-kubernetes-operator/.pulumi",
+					"refresh":                true,
+					"stack":                  "guestbook",
+					"projectRepo":            "https://github.com/tcrst/pulumi-k8s-operator-stacks",
+					"repoDir":                "stacks/guestbook",
 					// "commit":      "2b0889718d3e63feeb6079ccd5e4488d8601e353",
 					"branch":            "refs/heads/main", // Alternatively, track master branch.
 					"destroyOnFinalize": false,
