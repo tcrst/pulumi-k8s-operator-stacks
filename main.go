@@ -263,7 +263,7 @@ func main() {
 			Kind:       pulumi.String("Stack"),
 			OtherFields: kubernetes.UntypedArgs{
 				"spec": map[string]interface{}{
-					"backend:": "local",
+					"backend:": "file://./stacks",
 					"refresh":  true,
 
 					// "envRefs": pulumi.Map{
