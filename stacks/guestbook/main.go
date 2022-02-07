@@ -53,7 +53,7 @@ func main() {
 			Image:             pulumi.String("pulumi/guestbook-php-redis"),
 			IsMinikube:        pulumi.Bool(isMinikube),
 			Ports:             pulumi.IntArray{pulumi.Int(80)},
-			Replicas:          pulumi.Int(2),
+			Replicas:          pulumi.Int(4),
 		})
 		if err != nil {
 			return err
