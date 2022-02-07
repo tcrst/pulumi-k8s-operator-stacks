@@ -257,7 +257,7 @@ func main() {
 		}
 
 		// Deploy Guestbook stack in-cluster.
-		_, err = apiextensions.NewCustomResource(ctx, "my-stack", &apiextensions.CustomResourceArgs{
+		_, err = apiextensions.NewCustomResource(ctx, "guestbook-stack", &apiextensions.CustomResourceArgs{
 			ApiVersion: pulumi.String("pulumi.com/v1"),
 			Kind:       pulumi.String("Stack"),
 			OtherFields: kubernetes.UntypedArgs{
