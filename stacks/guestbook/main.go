@@ -17,17 +17,14 @@ package main
 import (
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
-		// Initialize config
-		conf := config.New(ctx, "")
 
 		// Minikube does not implement services of type `LoadBalancer`; require the user to specify if we're
 		// running on minikube, and if so, create only services of type ClusterIP.
-		isMinikube := conf.GetBool("isMinikube")
+		isMinikube := true
 
 		// Redis leader Deployment + Service
 		_, err := NewServiceDeployment(ctx, "redis-leader", &ServiceDeploymentArgs{
