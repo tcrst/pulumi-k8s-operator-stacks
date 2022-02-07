@@ -1,0 +1,3 @@
+name: pulumi-k8s-operator-stacks
+runtime: go
+description: pulumi-k8s-operator-stacks
