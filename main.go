@@ -288,7 +288,7 @@ func main() {
 					"repoDir":                "stacks/guestbook",
 					// "commit":      "2b0889718d3e63feeb6079ccd5e4488d8601e353",
 					"branch":            "refs/heads/main", // Alternatively, track master branch.
-					"destroyOnFinalize": false,
+					"destroyOnFinalize": true,
 				},
 			},
 		}, pulumi.DependsOn([]pulumi.Resource{crds}))
