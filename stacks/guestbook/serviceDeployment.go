@@ -16,33 +16,35 @@ package main
 
 import (
 	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/apps/v1"
+	hpav2beta2 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/autoscaling/v2beta2"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
+	rbacv1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/rbac/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type ServiceDeployment struct {
 	pulumi.ResourceState
-
-	FrontendIP pulumi.StringPtrOutput
-	Deployment *appsv1.Deployment
-	Service    *corev1.Service
+	FrontendIP     pulumi.StringPtrOutput
+	Deployment     *appsv1.Deployment
+	Service        *corev1.Service
+	Hpa            *hpav2beta2.HorizontalPodAutoscaler
+	ServiceAccount *corev1.ServiceAccount
+	ClusterRole    *rbacv1.ClusterRole
 }
 
 type ServiceDeploymentArgs struct {
 	AllocateIPAddress pulumi.Bool
 	Image             pulumi.StringInput
-	IsMinikube        pulumi.Bool
 	Ports             pulumi.IntArrayInput
 	Replicas          pulumi.IntPtrInput
+	Hpa               pulumi.Bool
 }
 
-func NewServiceDeployment(
-	ctx *pulumi.Context, name string, args *ServiceDeploymentArgs, opts ...pulumi.ResourceOption,
-) (*ServiceDeployment, error) {
+func NewServiceDeployment(ctx *pulumi.Context, name string, args *ServiceDeploymentArgs, opts ...pulumi.ResourceOption) (*ServiceDeployment, error) {
 	serviceDeployment := &ServiceDeployment{}
 	err := ctx.RegisterComponentResource(
-		"kubernetes-go-guestbook:component:ServiceDeployment",
+		"go-guestbook:component:ServiceDeployment",
 		name, serviceDeployment, opts...)
 	if err != nil {
 		return nil, err
@@ -103,6 +105,7 @@ func NewServiceDeployment(
 		return nil, err
 	}
 
+	// NewService HPA
 	servicePorts := portsOutput.ApplyT(func(ports []int) []corev1.ServicePort {
 		var result []corev1.ServicePort
 		for _, port := range ports {
@@ -114,14 +117,7 @@ func NewServiceDeployment(
 		return result
 	}).(corev1.ServicePortArrayOutput)
 
-	var serviceType pulumi.String
-	if args.AllocateIPAddress {
-		if args.IsMinikube {
-			serviceType = "ClusterIP"
-		} else {
-			serviceType = "LoadBalancer"
-		}
-	}
+	serviceType := pulumi.String("ClusterIP")
 
 	serviceDeployment.Service, err = corev1.NewService(ctx, name, &corev1.ServiceArgs{
 		Metadata: &metav1.ObjectMetaArgs{
@@ -150,6 +146,29 @@ func NewServiceDeployment(
 
 			return nil
 		}).(pulumi.StringPtrOutput)
+
+	// NewHorizontalPodAutoscaler Setup
+	if args.Hpa {
+		serviceDeployment.Hpa, err = hpav2beta2.NewHorizontalPodAutoscaler(ctx, name, &hpav2beta2.HorizontalPodAutoscalerArgs{
+			Metadata: &metav1.ObjectMetaArgs{
+				Labels: labels,
+				Name:   pulumi.String(name),
+			},
+			Spec: &hpav2beta2.HorizontalPodAutoscalerSpecArgs{
+				MaxReplicas: pulumi.Int(10),
+				MinReplicas: args.Replicas,
+				ScaleTargetRef: &hpav2beta2.CrossVersionObjectReferenceArgs{
+					ApiVersion: serviceDeployment.Deployment.ApiVersion,
+					Kind:       serviceDeployment.Deployment.Kind.Elem(),
+					Name:       serviceDeployment.Deployment.Metadata.Name().Elem(),
+				},
+			},
+		})
+
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return serviceDeployment, nil
 }
